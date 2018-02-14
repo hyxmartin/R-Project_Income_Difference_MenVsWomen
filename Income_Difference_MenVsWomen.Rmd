@@ -1,0 +1,644 @@
+---
+author: "Martin (Yuxiang) Hu"
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    toc: yes
+    toc_depth: 5
+    theme: sandstone
+  pdf_document:
+    toc: yes
+---
+## Project outline
+
+My task for this project is to write a report addressing the following problem:
+
+> Is there a significant difference in income between men and women? Does the difference vary  depending on other factors (e.g., education, marital status, criminal history, drug use, childhood household factors, profession, etc.)?
+
+To address this problem I will use the NLSY79 (National Longitudinal Survey of Youth, 1979 cohort) data set. The NLSY79 data set contains survey responses on thousands of individuals who have been surveyed every one or two years starting in 1979.
+
+**Base data set**: This base data set is posted on the course website, along with accompanying info files that tell you about the variables.
+
+A natural outcome variable for the data is TOTAL INCOME FROM WAGES AND SALARY IN PAST CALENDAR YEAR (TRUNC) (2012 survey question). Note that this quantity is **topcoded**, meaning that you do not get to see the actual incomes for the top 2% of earners. For the top 2% of earners, the income variable is set to the average income among the 2% of earners. 
+
+The data set has a copy in the project folder along with description.
+
+
+# 1. Data summary
+## Step 1 - Load Data and load libraries
+```{r}
+library(MASS)
+library(plyr)
+library(ggplot2)
+library(knitr)
+nlsy <- read.csv("http://huyuxiang.com/documents/data/nlsy79_income.csv", header=TRUE)  ##file hosted in my personal website host server.
+```
+## Step 2 - Renaming Column that we will use in this project.
+```{r}
+# Change all columns' names based on question content and descriptions.
+colnames(nlsy) <- c("version",
+    "identification.code",
+    "country.birth",
+    "south.nonsouth.birth",
+    "foreign.language.flag",
+    "foreign.language",
+    "south.nonsouth.age.14",
+    "urban.rural.age.14",
+    "religion",
+    "highest.grade.completion.1979",
+    "served.army",
+    "attitute.women.place",
+    "attitute.wife.no.employment",
+    "attitute.working.wife",
+    "attitute.juvenile.delinquency",
+    "attitute.traditional.life",
+    "attitute.men.share.housework",
+    "attitute.women.happyness",
+    "occupation.aspiration.age35",
+    "education.expectation.next.5years.1979",
+    "race",  # This is one variable that I pick to analyze.
+    "gender",  # We will use gender based on project requirement.
+    "marital.status.1979",
+    "family.size.1979",
+    "poverty.1978",
+    "stopped.by.police,flag",
+    "stopped.by.police.age",
+    "illegal.activity",
+    "alcohol.first.use.age",
+    "marijuana.use",
+    "marijuana.first.use.age",
+    "income.1989",
+    "poverty.1989",
+    "highest.grade.completion.1990",
+    "number.of.job",
+    "number.of.children",
+    "youngest.child.age",
+    "drug.use",
+    "drug.use.age",
+    "job.type.2000",
+    "current.job.2000",
+    "spouse.occupation.1999",
+    "work.hours.1999",
+    "number.of.children.biological",
+    "income.1999",
+    "family.size.2000",
+    "net.income.1999",
+    "poverty.1999",
+    "marital.status.2000.flag",
+    "marital.status.2000",  # This is one variable that I pick to analyze.
+    "marriage.birth.gap",  # This is one variable that I pick to analyze.
+    "partner.date.of.birth",
+    "job.type.2012",
+    "occupation.2012",
+    "spouse.occupation.2011",
+    "spouse.work.week.2011",
+    "number.of.drink.2012",
+    "income.2011",  # We will evaluate income in 2011, required in the project.
+    "net.income.2011",
+    "net.income.2011.2",
+    "spouse.income.2011",
+    "spouse.net.income.2011",
+    "family.size.2012",  # This is one variable that I pick to analyze.
+    "region.2012",
+    "highest.grade.2012",  # This is one variable that I pick to analyze.
+    "urban.rural.2012",
+    "number.of.job.2012")  # This is one variable that I pick to analyze.
+
+```
+- income.2011 - required.
+- gender - required.
+- race - is another factor of my interest.
+- marital.status.2000 - Analyze martial status to see if this is a factor affecting income gap.
+- marriage.birth.gap - also I would like to see if the year gap between first marriage and first child would become a significant variable
+- family.size.2012 - whether family size will alter the impact.
+- highest.grade.2012 - eduction, of course, is one of important variable to income. But we will see from our analysis.
+- number.of.job.2012 - This is another interesting aspect to income.
+
+## Step 3 - convert  Categorical variable to factors and rename/reorder levels
+
+The categorical variable includes: gender, marital.status.2000, race, highest.grade.2012
+The numeric variable includes: income.2011, marriage.birth.gap, spouse.income.2011
+```{r}
+variable.factor <- c("gender", "marital.status.2000", "race", "highest.grade.2012")
+variable.numeric <- c("marriage.birth.gap", "family.size.2012", "number.of.job.2012")
+```
+### 1) gender
+```{r}
+summary(nlsy$gender)
+nlsy <- transform(nlsy, 
+            gender = as.factor(mapvalues(gender, 
+                                         c(1, 2), 
+                                         c("Male", "Female")))
+            )
+summary(nlsy$gender)
+ggplot(nlsy, aes(x = gender)) +
+  geom_bar() + xlab("gender") +  ggtitle("Barchart of gender")
+```
+
+For gender, we don't see missing data (negative number) and the level names are also good.
+
+### 2) marital.status.2000
+```{r}
+summary(nlsy$marital.status.2000)
+nlsy <- transform(nlsy, 
+            marital.status.2000 = as.factor(mapvalues(marital.status.2000, 
+                                                      c(-5, -4, -3, 0, 1, 2, 3, 6), 
+                                                      c(NA, NA, NA,"Never Married", "Married", 
+                                                        "Separated", "Divorced", "Widowed")))
+            )
+summary(nlsy$marital.status.2000)
+ggplot(nlsy, aes(x = marital.status.2000)) +
+  geom_bar() + xlab("marital.status.2000") +  ggtitle("Barchart of marital.status.2000")
+```
+
+For marital.status.2000, the large portional of results fall into Non-interview and only 2 rows are -3. For -5 NON-INTERVIEW -4, apparently, they haven't seen this questions, we will go ahead code it as NA.  -1. -2. -3 should have been coded as "Unknown" to evaluate impact, however, there are only 2 responses. As a result, we will also code -3 to NA.
+
+### 3) race
+```{r}
+summary(nlsy$race)
+nlsy <- transform(nlsy,
+            race = as.factor(mapvalues(race, c(1, 2, 3), 
+                                       c("Hispanic", "Black", "Non-Black and Non-Hispanic")))
+            )
+summary(nlsy$race)
+ggplot(nlsy, aes(x = race)) +
+  geom_bar() + xlab("race") +  ggtitle("Barchart of race")
+```
+
+For race, we don't see missing data (negative number) and the levels are also good.
+
+### 4) highest.grade.2012
+```{r}
+summary(nlsy$highest.grade.2012)
+nlsy <- transform(nlsy,
+            highest.grade.2012 = as.factor(mapvalues(highest.grade.2012, 
+                                                     c(-5, -4, -3, -2, -1, 95, 
+                                                       93, 94, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 
+                                                       13, 14, 15, 16, 
+                                                       17, 18, 19, 20, 95),
+                                                     c(NA, NA, NA, rep("Unknown",3),
+                                                       rep("Highschool and Below",15),
+                                                       rep("Undergraduate",4),
+                                                       rep("graduate and above",5))))
+            )
+summary(nlsy$highest.grade.2012)
+ggplot(nlsy, aes(x = highest.grade.2012)) +
+  geom_bar() + xlab("highest.grade.2012") +  ggtitle("Barchart of highest.grade.2012")
+```
+
+For highest.grade.2012, although it looks like the higher level of education, the higher the number, it still makes more sense to group it to a couple of factor levels, rather than be considered as numeric variable. Again, -5 NON-INTERVIEW -4 is coded as NA.  -1. -2. -3 are coded as "Unknown", however, we have no responses on these categories.
+
+### 5) marriage.birth.gap
+```{r}
+summary(nlsy$marriage.birth.gap)
+nlsy$marriage.birth.gap[nlsy$marriage.birth.gap < 0]  <- NA
+summary(nlsy$marriage.birth.gap)
+ggplot(nlsy, aes(x = marriage.birth.gap)) +
+  xlab("marriage.birth.gap") +  ggtitle("Histogram of marriage.birth.gap") + geom_histogram()
+```
+
+According to the data set description, for marriage.birth.gap, -999 MISSING DATE, -998 NO CHILDREN, -997 NEVER MARRIED are all not applicable to this project, we will recode to NA. There are no responses on -5, -4, -3, -2, -1
+
+### 6) family.size.2012
+```{r}
+summary(nlsy$family.size.2012)
+nlsy$family.size.2012[nlsy$family.size.2012 < 0]  <- NA
+summary(nlsy$family.size.2012)
+ggplot(nlsy, aes(x = family.size.2012)) +
+  xlab("family.size.2012") +  ggtitle("Histogram of family.size.2012") + geom_histogram()
+```
+
+For family.size.2012, we will consider it as discrete numeric variables. There are only responses on -5, which we should ignore.
+
+### 7) number.of.job.2012
+```{r}
+summary(nlsy$number.of.job.2012)
+nlsy$number.of.job.2012[nlsy$number.of.job.2012 < 0]  <- NA
+summary(nlsy$number.of.job.2012)
+ggplot(nlsy, aes(x = marriage.birth.gap)) +
+  xlab("number.of.job.2012") +  ggtitle("Histogram of number.of.job.2012") + geom_histogram()
+```
+
+Similarily, for number.of.job.2012, we will consider it as discrete numeric variables. THere are only responses on -5, which we should ignore.
+
+## Step 4 - Evaluate income.2011
+```{r}
+summary(nlsy$income.2011)
+nlsy$income.2011[nlsy$income.2011 < 0]  <- NA
+summary(nlsy$income.2011)
+```
+
+The negative values have been recoded into NA, as most of them are -5 no interview.
+
+```{r}
+nlsy <- nlsy[which(!is.na(nlsy$income.2011)), ]
+```
+
+The next thing to do is to remove NA in income, since we are evaluating gender difference in income.2011. 5662 records removed.
+```{r}
+ggplot(nlsy, aes(x = income.2011)) +
+  xlab("income.2011") +  ggtitle("Histogram of income.2011") + geom_histogram()
+```
+
+
+The income.2011 distribution is skewed and topcoded as indicated in the data set description. We will compare each analysis with topcoded income and without topcoded income to see if the estimate changes much. These part of analysis will be using across all section No.2. But first of all, I would like to store topcode income in a variable.
+```{r}
+variable.topcode.income <- max(nlsy$income.2011)
+variable.topcode.income
+```
+```{r}
+nrow(nlsy[which(nlsy$income.2011 == variable.topcode.income),])
+```
+
+There are 143 income entries topcoded with average income 343830.
+
+```{r}
+nlsy.topcode.exclude <- nlsy[which(!nlsy$income.2011 == variable.topcode.income), ]
+```
+
+Stored a data frame without topcode values in income 2011.
+
+# 2. Methodology
+
+## Step 1 - Missing Code and Topcoded Approach
+
+### Missing Code
+The general methodology we will use is to take -3, -2, -1 into account into our model because they were actual selection (Refusal, Don't know, Invalid Skip). -5, -4 are ignored because these questions are not interviewed or valid skipped, they might not see these questions in the survey.
+
+For Numeric variable and income itself, we have removed negative value by either assigning NA or remove records (for income).
+
+These preparation work has been completed in Part 1.
+
+### Topcoded
+
+As mentioned above, we will do comparison on model with/without topcoded values. 
+
+## Step 2 - Evaluation for each variable
+
+### 1) income ~ gender
+```{r}
+qplot(x = gender, y = income.2011,
+      geom = "boxplot", data = nlsy,
+      fill = gender) + 
+  labs(x = "Gender", y = "income.2011", title = "Income difference between gender") +
+  scale_y_continuous(breaks = c(1000, 10000, 25000, 50000, 75000, 100000, 150000))
+```
+This doesn't appear to be clear, next we try with logarithmis scale instead.
+```{r}
+qplot(x = gender, y = income.2011,
+      geom = "boxplot", data = nlsy,
+      fill = gender) + 
+  labs(x = "Gender", y = "income.2011", title = "Income difference between gender") +
+  scale_y_continuous(trans = "log", breaks = c(1000, 10000, 25000, 50000, 75000, 100000, 150000))
+```
+
+Note that we have removed negative values in income but any records with 0 income will be omitted in logarithmis scale.
+Additionally, we will look at the mean on both with topcoded and without topcoded values. 
+```{r}
+aggregate(income.2011 ~ gender, 
+          data = nlsy, 
+          FUN = function(x) {c(mean = mean(x), sd = sd(x), se = sd(x) / sqrt(length(x)))})
+aggregate(income.2011 ~ gender, 
+          data = nlsy.topcode.exclude, 
+          FUN = function(x) {c(mean = mean(x), sd = sd(x), se = sd(x) / sqrt(length(x)))})
+```
+
+The result looks very significant with or without topcode values
+Let's look at the p-value from t-test results.
+```{r}
+t.test(income.2011 ~ gender, data = nlsy)$p.value
+```
+
+```{r}
+t.test(income.2011 ~ gender, data = nlsy.topcode.exclude)$p.value
+```
+
+P-value is close to 0 for both models. Therefore, male income in 2011 is statistically significantly higher than female income in 2011.
+
+### 2) income ~ gender by race
+
+```{r}
+qplot(x = gender, y = income.2011,
+      geom = "boxplot", data = nlsy,
+      fill = gender) + 
+  labs(x = "Gender", y = "income.2011", title = "Income difference between gender by race (topcoded income included)") +
+  scale_y_continuous(breaks = c(1000, 10000, 25000, 50000, 75000, 100000, 150000)) +
+  facet_grid(. ~ race)
+  
+```
+```{r}
+qplot(x = gender, y = income.2011,
+      geom = "boxplot", data = nlsy.topcode.exclude,
+      fill = gender) + 
+  labs(x = "Gender", y = "income.2011", title = "Income difference between gender by race (topcoded income excluded)") +
+  scale_y_continuous(breaks = c(1000, 10000, 25000, 50000, 75000, 100000, 150000)) +
+  facet_grid(. ~ race)
+  
+```
+
+Income difference seems to vary by race. The difference is very close in Black and slightly higher in Hispanic. But non-black and non-hispanic category shows quite a big difference. The same difference shows on NA income excluded plot.
+
+### 3) income ~ gender by marital.status.2000
+
+In this varialbe analysis, we will evaluate income gap by a barchart.
+```{r}
+income.gap.by.marital.status.2000 <- ddply(nlsy, ~ marital.status.2000, summarize, 
+      income.gap = mean(income.2011[gender == "Male"], na.rm = TRUE) - mean(income.2011[gender == "Female"], na.rm = TRUE))
+income.gap.by.marital.status.2000 <- transform(income.gap.by.marital.status.2000,
+                      marital.status.2000 = reorder(marital.status.2000, -income.gap))
+ggplot(data = income.gap.by.marital.status.2000, aes(x = marital.status.2000, y = income.gap, fill = marital.status.2000)) +
+  geom_bar(stat = "identity") +
+  xlab("marital.status.2000") + 
+  ylab("Income gap") +
+  ggtitle("Income gap by gender, by marital.status.2000, topcoded income included") + 
+  guides(fill = FALSE)
+```
+
+The income gap between men and women are very significant across marrital status, especially on Married people. My initial thought is that marrital status has little impact on income difference. However, the results indicate my assumption may not be correct. A possible explanation is that married women may sacrifice their professional life to marriage. 
+
+```{r}
+income.gap.by.marital.status.2000 <- ddply(nlsy.topcode.exclude, ~ marital.status.2000, summarize, 
+      income.gap = mean(income.2011[gender == "Male"], na.rm = TRUE) - mean(income.2011[gender == "Female"], na.rm = TRUE))
+income.gap.by.marital.status.2000 <- transform(income.gap.by.marital.status.2000,
+                      marital.status.2000 = reorder(marital.status.2000, -income.gap))
+ggplot(data = income.gap.by.marital.status.2000, aes(x = marital.status.2000, y = income.gap, fill = marital.status.2000)) +
+  geom_bar(stat = "identity") +
+  xlab("marital.status.2000") + 
+  ylab("Income gap") +
+  ggtitle("Income gap by gender, by marital.status.2000, topcoded income encluded") + 
+  guides(fill = FALSE)
+```
+The difference is still significant, however, notice that Never Married category shows negative income gap. This is another interesting found. Not considering those with very high income, women that have never married tend to get higher salary than men.
+
+### 4) income ~ gender by highest.grade.2012
+
+Similaritly, we will evaluate highest.grade.2012 with the same approach above
+
+```{r}
+income.gap.by.highest.grade.2012 <- ddply(nlsy, ~ highest.grade.2012, summarize, 
+      income.gap = mean(income.2011[gender == "Male"], na.rm = TRUE) - mean(income.2011[gender == "Female"], na.rm = TRUE))
+income.gap.by.highest.grade.2012 <- transform(income.gap.by.highest.grade.2012,
+                      highest.grade.2012 = reorder(highest.grade.2012, -income.gap))
+ggplot(data = income.gap.by.highest.grade.2012, aes(x = highest.grade.2012, y = income.gap, fill = highest.grade.2012)) +
+  geom_bar(stat = "identity") +
+  xlab("highest.grade.2012") + 
+  ylab("Income gap") +
+  ggtitle("Income gap by gender, by highest.grade.2012, topcoded income included") + 
+  guides(fill = FALSE)
+```
+
+Apparently, income gap varies by highest.grade.2012. Here Graduate and above has most significant difference. When it comes to highschool and below, the difference becomes smaller.
+
+```{r}
+income.gap.by.highest.grade.2012 <- ddply(nlsy.topcode.exclude, ~ highest.grade.2012, summarize, 
+      income.gap = mean(income.2011[gender == "Male"], na.rm = TRUE) - mean(income.2011[gender == "Female"], na.rm = TRUE))
+income.gap.by.highest.grade.2012 <- transform(income.gap.by.highest.grade.2012,
+                      highest.grade.2012 = reorder(highest.grade.2012, -income.gap))
+ggplot(data = income.gap.by.highest.grade.2012, aes(x = highest.grade.2012, y = income.gap, fill = highest.grade.2012)) +
+  geom_bar(stat = "identity") +
+  xlab("highest.grade.2012") + 
+  ylab("Income gap") +
+  ggtitle("Income gap by gender, by highest.grade.2012, topcoded income excluded") + 
+  guides(fill = FALSE)
+```
+
+Interesting founding is that without high salary incomes, income gap between men and women tends to be equal between undergraduate and graduate above tends to be, although highschool and below has smaller gap than the higher degree.
+
+### 5) income ~ gender by marriage.birth.gap
+
+```{r}
+ggplot(data = nlsy, aes (x = marriage.birth.gap, y = income.2011, colour= gender)) +
+       geom_point(na.rm = TRUE) +
+       geom_smooth(method = 'lm', formula = y ~ x) +
+       ggtitle("Income gap by gender, by marriage.birth.gap, topcoded income included")
+```
+
+From the plot, it doesn't seem marriage.birth.gap to be quite significant to income gap, as the two regression lines seem to be parallel. Notice that the point on the top are from Topcoded incomes. Let's remove them.
+
+```{r}
+ggplot(data = nlsy.topcode.exclude, aes (x = marriage.birth.gap, y = income.2011, colour= gender)) +
+       geom_point(na.rm = TRUE) +
+       geom_smooth(method = 'lm', formula = y ~ x) +
+       ggtitle("Income gap by gender, by marriage.birth.gap, topcoded income excluded")
+```
+
+Without topcoded income, the income gap seems to get closer along with marriage.birth.gap increase.
+
+### 6) income ~ gender by family.size.2012
+
+Same approach, this time we will look into family.size.2012
+
+```{r}
+ggplot(data = nlsy, aes (x = family.size.2012, y = income.2011, colour= gender)) +
+       geom_point(na.rm = TRUE) +
+       geom_smooth(method = 'lm', formula = y ~ x) +
+       ggtitle("Income gap by gender, by family.size.2012, topcoded income included")
+```
+
+```{r}
+ggplot(data = nlsy.topcode.exclude, aes (x = family.size.2012, y = income.2011, colour= gender)) +
+       geom_point(na.rm = TRUE) +
+       geom_smooth(method = 'lm', formula = y ~ x) +
+       ggtitle("Income gap by gender, by family.size.2012, topcoded income included")
+```
+
+Based on the plot results, we found huge impact on income gap from both topcoded included/excluded approaches. 
+Additioanl found that, women's income gets lower with more family members. On the contrary, men's income tends to be increasing. This may be because women take more time with family than professional growth. 
+
+### 7) income ~ gender by number.of.job.2012
+
+Another interesting variables is number.of.job.2012. This time we will test with interactions effect on gender and number.of.job.2012.
+
+Firstly, create linear regression model and a interactive model on gender and number.of.job.2012.
+```{r}
+nlsy.lm <- lm(income.2011 ~ gender + number.of.job.2012, data = nlsy)
+nlsy.lm.interact <- update(nlsy.lm, . ~ . + gender * number.of.job.2012)
+kable(coef(summary(nlsy.lm)))
+kable(coef(summary(nlsy.lm.interact)))
+```
+Then we use anova function to test significance.
+
+```{r}
+anova(nlsy.lm, nlsy.lm.interact)
+```
+From p-value, we know that number.of.job.2012 is statistically significant.
+
+Again, we will run it without topcoded values. This time I wll put everything together.
+```{r}
+nlsy.lm.2 <- lm(income.2011 ~ gender + number.of.job.2012, data = nlsy.topcode.exclude)
+nlsy.lm.2.interact <- update(nlsy.lm.2, . ~ . + gender * number.of.job.2012)
+anova(nlsy.lm.2, nlsy.lm.2.interact)
+```
+The p-value is still very close to 0. As a result, number.of.job.2012 is statistically significant.
+# 3. Findings
+## Step 1 - COlligearity
+We have stored variables in variable.factor and variable.numeric in Part 1.
+
+```{r}
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- abs(cor(x, y))
+    txt <- format(c(r, 0.123456789), digits = digits)[1]
+    txt <- paste0(prefix, txt)
+    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+    text(0.5, 0.5, txt, cex = pmax(1, cex.cor * r))
+}
+pairs(nlsy[,c(variable.factor, variable.numeric)], lower.panel = panel.cor)
+```
+
+We don't see any highly correlated variables, so our analysis passes Colligearity check.
+
+## Step 2 - Linear Regression
+
+We will graduately add more variables and analyze if it's statistically significant. Then finally, we will come to a complete linear regression model. We will display the coef table in each step, 
+
+### 1) income ~ gender
+
+```{r}
+income.2011.lm <- lm(income.2011 ~ gender, data = nlsy)
+kable(summary(income.2011.lm)$coef, digits = c(3, 3, 3, 4), format = "markdown")
+```
+
+P-value is 0, and gender is a required, so we will keep this for sure.
+
+### 2) + marital.status.2000
+
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . + marital.status.2000)
+kable(summary(income.2011.lm)$coef, digits = c(3, 3, 3, 4), format = "markdown")
+```
+
+Although marital.status.2000Widowed's p-value is 0.5874, but the rest of levels are statistic significant.
+
+### 3) + race
+
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . + race)
+kable(summary(income.2011.lm)$coef, digits = c(3, 3, 3, 4), format = "markdown")
+```
+
+Keep adding, race is significant
+
+### 4) + highest.grade.2012
+
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . + highest.grade.2012)
+kable(summary(income.2011.lm)$coef, digits = c(3, 3, 3, 4), format = "markdown")
+```
+
+Highest.grade.2012 is highly significant.
+
+### 5) + marriage.birth.gap
+
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . + marriage.birth.gap)
+kable(summary(income.2011.lm)$coef, digits = c(3, 3, 3, 4), format = "markdown")
+```
+
+marriage.birth.gap is not statistically significant according to the p-value. This estimate aligns with previous analysis in part 2. We will drop this variable next and then add new variable.
+
+### 6) + family.size.2012
+
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . - marriage.birth.gap + family.size.2012)
+kable(summary(income.2011.lm)$coef, digits = c(3, 3, 3, 4), format = "markdown")
+```
+
+family.size.2012 is statistically significant.
+
+### 7) + number.of.job.2012
+
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . + number.of.job.2012)
+kable(summary(income.2011.lm)$coef, digits = c(3, 3, 3, 4), format = "markdown")
+```
+
+number.of.job.2012 is statistically significant.
+
+## Step 3 - add interaction
+Since we are evaluating each variable's impact to income gap between men and women, we will add interactions of gender with each of additional variables.
+
+### 1) + gender:marital.status.2000
+
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . + gender:marital.status.2000)
+anova(income.2011.lm, update(income.2011.lm, . ~ . - gender:marital.status.2000))
+```
+
+According to p-value 2.2e-16, we will keep gender:marital.status.2000
+
+### 2) + gender:race
+
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . + gender:race)
+anova(income.2011.lm, update(income.2011.lm, . ~ . - gender:race))
+```
+
+According to p-value 8.818e-08, we will keep gender:race
+
+### 3) + gender:highest.grade.2012
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . + gender:highest.grade.2012)
+anova(income.2011.lm, update(income.2011.lm, . ~ . - gender:highest.grade.2012))
+```
+
+According to p-value 2.2e-16, we will keep gender:highest.grade.2012
+
+### 4) + gender:marriage.birth.gap
+
+Atually we've already removed marriage.birth.gap.
+
+### 5) + gender:family.size.2012
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . + gender:family.size.2012)
+anova(income.2011.lm, update(income.2011.lm, . ~ . - gender:family.size.2012))
+```
+
+According to p-value 6.125e-07, we will keep gender:family.size.2012
+
+### 6) + gender:number.of.job.2012
+```{r}
+income.2011.lm <- update(income.2011.lm, . ~ . + gender:number.of.job.2012)
+anova(income.2011.lm, update(income.2011.lm, . ~ . - gender:number.of.job.2012))
+```
+According to p-value 1.339e-06, we will keep gender:number.of.job.2012
+
+
+
+## Step 5 - Standard diagnostic plots analysis
+```{r}
+plot(income.2011.lm)
+```
+
+### 1) Residuals vs Fitted
+
+The residuals vs Fitted plot shows a non randomly distributed pattern, it appears to have a trend.
+
+### 2) Normal Q-Q
+
+It appears as a heavier tails. 
+
+### 3) Residuals vs Leverage
+
+In Residuals vs Leverage, there is no obvious points close to cook's distance dashed red line (not appearing on the plot). Therefore, no points have both high residual and leverage.
+
+# 4. Discussion
+THe final coefficients of our model is a below
+```{r}
+kable(summary(income.2011.lm)$coef, digits = c(3, 3, 3, 4), format = "markdown")
+```
+Through out our analysis, we have come to many interesting conclusions:
+- Gender - Gender itelf is a significant variable to income.
+- marital.status.2000 - Statiscially Significant. Especially on Married vs never Married. We've found married men and women has biggest income gap.
+- race - Statiscially Significant to income gap. The difference on income gap exists among different race group. 
+- marriage.birth.gap - Not statiscially Significant. It does not seem marriage.birth.gap to be quite significant to income gap. My initial understanding is when a baby comes, one of parents will take more time to take care of the baby, and this will lead to enlarge income gap. However, this is not true based on the analysis.
+- family.size.2012 - Statiscially Significant. The more babies the larger income gap.
+- highest.grade.2012 - Statiscially Significant. This results is aligned with my assumption. Education again is a key to success according to the huge number on estimate.
+- number.of.job.2012 - Statiscially Significant. Interesting thing here is with each 1 more job, we will see $220 less income. 
+
+Overall, indeed, we see a strong evidence that gender is significant to income. Although the statistic diagnotic plot doesn't show a good distribution, we have over 12,000 samples, which is pretty large to believe in the analysis result. I believe the model we obtained from the dataset.
+
+However, I'm not confident with the data as these questions are across different year, some of interview results are not in the same year of the time we evaluate income. I wouldn't use this to present findings to policy makers.

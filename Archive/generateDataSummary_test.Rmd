@@ -1,0 +1,527 @@
+---
+author: "Martin Hu"
+date: ""
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+---
+
+## Contents
+
+This Rmd file contains test cases and expected output for the functions you are asked to write on Homework 4.  
+
+Note that each of the test cases is randomly generated.  The `set.seed()` command at the beginning of each code block ensures that everyone's random test case is exactly the same.
+
+## Problem 1
+
+### Test case 1
+
+No missing values, group variable has 2 levels.
+
+#### Input 
+```{r}
+set.seed(92016)
+
+x1 <- c(rnorm(20), 2 + rnorm(10))
+groups1 <- as.factor(c(rep("A", 20), rep("B", 10)))
+
+# Print input
+x1
+groups1
+```
+
+#### Expected output
+
+```
+> generateNumericSummary(x1, groups1)
+$num.missing
+[1] 0
+
+$means
+[1] 0.04978985 2.25163095
+
+$sds
+[1] 0.8140751 1.1815375
+
+$p.value
+[1] 0.0001297579
+
+$var.type
+[1] "numeric"
+```
+
+### Test case 2
+
+No missing values, group variable has 4 levels.
+
+#### Input
+```{r}
+set.seed(92016)
+
+x2 <- c(rnorm(20), 2 + rnorm(10), 1 + rnorm(10), rnorm(10))
+groups2 <- as.factor(c(rep("A", 20), rep("B", 10), rep("C", 10), rep("D", 10)))
+
+# Print input
+x2
+groups2
+```
+
+#### Expected output
+```
+> generateNumericSummary(x2, groups2)
+$num.missing
+[1] 0
+
+$means
+[1]  0.04978985  2.25163095  0.59876555 -0.23038550
+
+$sds
+[1] 0.8140751 1.1815375 0.9309859 0.9165123
+
+$p.value
+[1] 5.355028e-07
+
+$var.type
+[1] "numeric"
+```
+
+### Test case 3
+
+Some missing values, group variable has 2 levels.
+
+#### Input
+```{r}
+x3 <- x1
+x3[c(1, 5, 10, 15, 16, 22, 27, 29)] <- NA
+groups3 <- groups1
+  
+# Print input
+x3
+groups3
+```
+
+#### Expected output
+
+```
+> generateNumericSummary(x3, groups3)
+$num.missing
+[1] 8
+
+$means
+[1] 0.1513919 2.3103344
+
+$sds
+[1] 0.8608662 1.0055923
+
+$p.value
+[1] 0.0005702583
+
+$var.type
+[1] "numeric"
+```
+
+### Test case 4
+
+Some missing values, group variable has 4 levels.
+
+#### Input
+```{r}
+x4 <- x2
+x4[c(1,2,6,15,24,25,33,37,44)] <- NA
+groups4 <- groups2
+
+# Print input
+x4
+groups4
+```
+
+#### Expected output
+
+```
+> generateNumericSummary(x4, groups4)
+$num.missing
+[1] 9
+
+$means
+[1]  0.03078715  2.38988151  0.70921024 -0.27178988
+
+$sds
+[1] 0.7536143 1.2947970 0.9746499 0.9621372
+
+$p.value
+[1] 4.077215e-06
+
+$var.type
+[1] "numeric"
+```
+
+## Problem 2
+
+### Test case 1
+
+No missing values, group variable has 2 levels.
+
+#### Input 
+```{r}
+set.seed(92016)
+
+b1 <- c(round(runif(20)), as.numeric(runif(10) < 0.8))
+groups1 <- as.factor(c(rep("A", 20), rep("B", 10)))
+
+# Print input
+b1
+groups1
+```
+
+#### Expected output
+
+```
+> generateBinarySummary(b1, groups1)
+$num.missing
+[1] 0
+
+$prop
+[1] 0.6 0.8
+
+$p.value
+[1] 0.4194711
+
+$var.type
+[1] "binary"
+```
+
+### Test case 2
+
+No missing values, group variable has 4 levels.
+
+#### Input
+```{r}
+set.seed(92016)
+
+b2 <- c(round(runif(20)), 
+        as.numeric(runif(10) < 0.8), 
+        as.numeric(runif(10) < 0.2),
+        as.numeric(runif(10) < 0.4))
+groups2 <- as.factor(c(rep("A", 20), rep("B", 10), rep("C", 10), rep("D", 10)))
+
+b2
+groups2
+```
+
+#### Expected output
+```
+> generateBinarySummary(b2, groups2)
+$num.missing
+[1] 0
+
+$prop
+[1] 0.6 0.8 0.0 0.3
+
+$p.value
+[1] 0.0006143226
+
+$var.type
+[1] "binary"
+```
+
+### Test case 3
+
+Some missing values, group variable has 2 levels.
+
+#### Input
+```{r}
+b3 <- b1
+b3[c(1, 5, 10, 15, 16, 22, 27, 29)] <- NA
+groups3 <- groups1
+
+# Print input
+b3
+groups3
+```
+
+#### Expected output
+
+```
+> generateBinarySummary(b3, groups3)
+$num.missing
+[1] 8
+
+$prop
+[1] 0.5333333 0.7142857
+
+$p.value
+[1] 0.6478328
+
+$var.type
+[1] "binary"
+```
+
+### Test case 4
+
+Some missing values, group variable has 4 levels.
+
+#### Input
+```{r}
+b4 <- b2
+b4[c(1,2,6,15,24,25,33,37,44)] <- NA
+groups4 <- groups2
+
+# Print input
+b4
+groups4
+```
+
+#### Expected output
+
+```
+> generateBinarySummary(b4, groups4)
+$num.missing
+[1] 9
+
+$prop
+[1] 0.6875000 0.7500000 0.0000000 0.3333333
+
+$p.value
+[1] 0.002827139
+
+$var.type
+[1] "binary"
+```
+
+## Problem 3 and 3b
+
+Note that the `generateVariableSummary` function should product the exact same output as the functions in Problem 1 and Problem 2 on the test cases provided for those functions.  You should therefore test your generateVariableSummary function on all 8 test cases given above. 
+
+Here are a couple of test cases that are not covered by the 8 you already have.  Answers are provided both for the function in Problem 3 and the improved function in Problem 3b.
+
+### Test case 1
+
+
+#### Input
+```{r}
+set.seed(92016)
+y1 <- as.factor(sample(c("cat", "dog", "bird"), 30, replace = TRUE))
+
+# Print input
+y1
+```
+
+#### Expected output: Problem 3
+```
+generateVariableSummary(y1, groups1)
+NULL
+```
+
+#### Expected output: Problem 3b
+```
+> generateVariableSummary(y1, groups1)
+$xbird
+$xbird$num.missing
+[1] 0
+
+$xbird$prop
+[1] 0.45 0.30
+
+$xbird$p.value
+[1] 0.6941529
+
+$xbird$var.type
+[1] "binary"
+
+
+$xcat
+$xcat$num.missing
+[1] 0
+
+$xcat$prop
+[1] 0.1 0.6
+
+$xcat$p.value
+[1] 0.007234844
+
+$xcat$var.type
+[1] "binary"
+
+
+$xdog
+$xdog$num.missing
+[1] 0
+
+$xdog$prop
+[1] 0.45 0.10
+
+$xdog$p.value
+[1] 0.1007607
+
+$xdog$var.type
+[1] "binary"
+
+
+$var.type
+[1] "factor"
+```
+
+### Test case 2
+
+#### Input
+```{r}
+set.seed(92016)
+y2 <- sample(c(1, 12, 0, "asdf"), 50, replace = TRUE)
+
+# Print input
+y2
+```
+
+#### Expected output (same for 3 and 3b)
+
+```
+> generateVariableSummary(y2, groups2)
+NULL
+```
+
+## Problem 4
+
+The test cases defined above are sufficient for testing this function.  I therefore display only the expected outputs.
+
+### Test case 1: x1, groups1
+
+```
+> formatVariableSummary(generateVariableSummary(x1, groups1))
+[1] "0"           "0.05 (0.81)" "2.25 (1.18)" "1e-04"  
+```
+
+### Test case 2: b1, groups1
+
+```
+> formatVariableSummary(generateVariableSummary(b1, groups1))
+[1] "0"      "60%"    "80%"    "0.4195"
+
+```
+### Test case 3: x2, groups2
+
+```
+> formatVariableSummary(generateVariableSummary(x2, groups2))
+[1] "0"            "0.05 (0.81)"  "2.25 (1.18)"  "0.6 (0.93)"  "-0.23 (0.92)" "0"     
+
+```
+
+### Test case 4: b2, groups2
+
+```
+> formatVariableSummary(generateVariableSummary(b2, groups2))
+[1] "0"     "60%"   "80%"   "0%"    "30%"   "6e-04"
+
+```
+
+### Test case 5: x3, groups1
+
+```
+> formatVariableSummary(generateVariableSummary(x3, groups1))
+[1] "8"           "0.15 (0.86)" "2.31 (1.01)" "6e-04"  
+
+```
+
+### Test case 6: b3, groups1
+
+```
+> formatVariableSummary(generateVariableSummary(b3, groups1))
+[1] "8"      "53.3%"  "71.4%"  "0.6478"
+
+```
+
+### Test case 7: x4, groups2
+
+```
+> formatVariableSummary(generateVariableSummary(x4, groups2))
+[1] "9"            "0.03 (0.75)"  "2.39 (1.29)"  "0.71 (0.97)"  "-0.27 (0.96)" "0"  
+
+```
+
+### Test case 8: b4, groups2
+
+```
+> formatVariableSummary(generateVariableSummary(b4, groups2))
+[1] "9"      "68.8%"  "75%"    "0%"     "33.3%"  "0.0028"
+
+```
+
+### Test case 9: y1, groups1
+
+```
+> formatVariableSummary(generateVariableSummary(y1, groups1))
+      [,1] [,2]  [,3]  [,4]    
+xbird "0"  "45%" "30%" "0.6942"
+xcat  "0"  "10%" "60%" "0.0072"
+xdog  "0"  "45%" "10%" "0.1008"
+```
+
+### Test case 10: y2, groups2
+
+```
+> formatVariableSummary(generateVariableSummary(y2, groups2))
+NULL
+```
+
+## Problem 5
+
+### Test case 1
+
+Grouping variable has two levels.
+
+#### Input
+```{r}
+# form test cases into a data frame
+df1 <- data.frame(x1, x3, b1, b3, y1, groups1)
+
+var.names <- c("x1", "x3", "y1", "b1", "b3")
+group.name <- "groups1"
+
+# Print first bit of input
+head(df1)
+```
+
+#### Expected output
+
+```
+> generateDataSummary(df1, var.names, group.name)
+     Variable  Missing A             B             P-value 
+[1,] "x1"      "0"     "0.05 (0.81)" "2.25 (1.18)" "1e-04" 
+[2,] "x3"      "8"     "0.15 (0.86)" "2.31 (1.01)" "6e-04" 
+[3,] "y1:bird" "0"     "45%"         "30%"         "0.6942"
+[4,] "y1:cat"  "0"     "10%"         "60%"         "0.0072"
+[5,] "y1:dog"  "0"     "45%"         "10%"         "0.1008"
+[6,] "b1"      "0"     "60%"         "80%"         "0.4195"
+[7,] "b3"      "8"     "53.3%"       "71.4%"       "0.6478"
+```
+
+### Test case 2
+
+Grouping variable has 4 levels
+
+#### Input
+```{r}
+# form test cases into a data frame
+df2 <- data.frame(x2, x4, b2, b4, y2, groups2)
+
+var.names2 <- c("x2", "x4", "y2", "b2", "b4")
+group.name2 <- "groups2"
+
+# Print first bit of input
+head(df2)
+```
+
+#### Expected output
+
+```
+> generateDataSummary(df2, var.names2, group.name2)
+     Variable  Missing A             B             C             D              P-value 
+[1,] "x2"      "0"     "0.05 (0.81)" "2.25 (1.18)" "0.6 (0.93)"  "-0.23 (0.92)" "0"     
+[2,] "x4"      "9"     "0.03 (0.75)" "2.39 (1.29)" "0.71 (0.97)" "-0.27 (0.96)" "0"     
+[3,] "y2:0"    "0"     "20%"         "10%"         "10%"         "30%"          "0.6101"
+[4,] "y2:1"    "0"     "10%"         "40%"         "0%"          "20%"          "0.0696"
+[5,] "y2:12"   "0"     "30%"         "20%"         "50%"         "30%"          "0.5807"
+[6,] "y2:asdf" "0"     "40%"         "30%"         "40%"         "20%"          "0.7825"
+[7,] "b2"      "0"     "60%"         "80%"         "0%"          "30%"          "6e-04" 
+[8,] "b4"      "9"     "68.8%"       "75%"         "0%"          "33.3%"        "0.0028"
+```
